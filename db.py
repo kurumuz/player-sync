@@ -1,9 +1,9 @@
 global debug
 global time
-global playstatus
-global sudo
+global ps
+global master
 
-sudo = True
-debug = True
+master = True
+debug = False
 time = 0
-playstatus = "stopped"
+ps = "stopped"

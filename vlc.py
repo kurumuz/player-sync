@@ -11,9 +11,9 @@ def get_info():
     info = session.get('http://127.0.0.1:8080/requests/status.xml', verify=False)
     tree = ET.fromstring(info.content)
     db.time = int(tree[5].text)
-    db.playstatus = tree[12].text
+    db.ps = tree[12].text
     if db.debug:
-        print(f" Zaman: {str(db.time)} Oynatma Durumu: {db.playstatus}")
+        print(f" Zaman: {str(db.time)} Oynatma Durumu: {db.ps}")
 
 def pause():
     r = session.get('http://127.0.0.1:8080/requests/status.xml?command=pl_pause', verify=False)
