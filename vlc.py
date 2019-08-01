@@ -2,6 +2,7 @@ import requests
 import threading
 import xml.etree.ElementTree as ET
 import db
+
 session = requests.Session()
 session.auth = ('', 'kalemkalem')
 
