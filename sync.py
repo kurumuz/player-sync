@@ -7,12 +7,14 @@ from time import sleep
 import vlc
 import db
 
+sudotime = 0
 sudoplaystatus = "stopped"
 sudotime = 0
 time_changed = False
 status_changed = False
 player_name = "vlc"
 session = requests.Session()
+sudolist = []
 lag = 0.1
 
 def select_sudo():
@@ -24,8 +26,8 @@ def select_sudo():
         db.sudo = True
 
 class Server:
-
     url = "None"
+    username = ""
 
     def set_url(self, new_url):
         self.url = new_url
@@ -35,25 +37,33 @@ class Server:
             client = requests.session()
             client.get(loginurl, timeout=5)
             csrftoken = client.cookies['csrftoken']
-            username = f'{str(db.sudo)};{playstatus1};{str(time1)};{command}'
-            login_data = {'username': username, 'password': 'blabla', 'csrfmiddlewaretoken':csrftoken}
-            response = client.post(loginurl, data=login_data, timeout=5)
-            if db.debug:
-                print(username)
-                print(response)
+            username2 = self.username
+            self.username = f'{str(db.sudo)};{playstatus1};{str(time1)};{command}'
+
+            if self.username != username2: #possible optimization, needs testing.
+                login_data = {'username': self.username, 'password': 'blabla', 'csrfmiddlewaretoken':csrftoken}
+                response = client.post(loginurl, data=login_data, timeout=5)
+                if db.debug:
+                    print(self.username)
+                    print(response)
         #sudo;running;time;deletecommand   
 
     def get_server_info(self):
+        global sudotime
+        global sudoplaystatus
+        global sudolist
+
         r = requests.get(f'{self.url}/sudo/')
         sudolist = r.text
         sudolist = sudolist.split("\n")
-        #print(sudolist[0].split(';')[2])
         sudoplaystatus = sudolist[0].split(';')[1]
+
+        print(f"sudotime {sudotime}")
         sudotime = int(sudolist[0].split(';')[2])
 
 
-class Player:
 
+class Player:
     name = "None"
 
     def log_auth(self, password):
@@ -88,6 +98,7 @@ class Player:
 
     def seek(self, time):
         if self.name == "vlc":
+            print("seek")
             vlc.seek(time)
         if self.name == "kodi":
             return
@@ -103,6 +114,9 @@ class Player:
             return    
 
     def client_sync(self):
+        global status_changed
+        global sudoplaystatus
+        global time_changed
         if status_changed:
             if sudoplaystatus == "stopped":
                 self.stop()
@@ -113,18 +127,21 @@ class Player:
             if sudoplaystatus == "playing":
                 self.play()
                 print("Oynatma başlatıldı.")
-        print(time_changed)
 
         if time_changed:
             self.seek(sudotime)
 
     def is_status_changed(self):
-        if sudolist[0].split(';')[1] != db.playstatus:
+        global sudoplaystatus
+        global status_changed
+        if sudoplaystatus != db.playstatus:
             status_changed = True
         else:
             status_changed = False
 
     def is_time_changed(self):
+        global sudotime
+        global time_changed
         print(f"timefark: {abs(sudotime-db.time)}")
         if abs(sudotime-db.time) > 5:
             time_changed = True
