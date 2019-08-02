@@ -60,6 +60,7 @@ class Server:
 
          #print(f"mastertime {mastertime}")
         mastertime = int(masterlist[0].split(';')[2])
+
 class Player:
     name = "None"
 
@@ -69,9 +70,9 @@ class Player:
     def set_player(self, new_name):
         self.name = new_name
 
-    def play(self):kimsn senwho are you
+    def play(self):
         if self.name == "vlc":
-            vlc.play()kimsn senwho are you
+            vlc.play()
         if self.name == "kodi":
             kodi.play()
             return
