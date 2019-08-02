@@ -2,8 +2,10 @@ global debug
 global time
 global ps
 global master
+global playerid
 
+playerid = "null"
 master = True
-debug = False
+debug = True
 time = 0
 ps = "stopped"

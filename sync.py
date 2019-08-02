@@ -6,12 +6,13 @@ import math
 from time import sleep
 import vlc
 import db
+import kodi
 
 mastertime = 0
 masterps = "stopped" #master playstatus
 time_changed = False
 status_changed = False
-player_name = "vlc"
+player_name = "kodi"
 session = requests.Session()
 masterlist = []
 lag = 0.1
@@ -73,6 +74,7 @@ class Player:
         if self.name == "vlc":
             vlc.play()
         if self.name == "kodi":
+            kodi.play()
             return
         if self.name == "mpv":
             return
@@ -81,6 +83,7 @@ class Player:
         if self.name == "vlc":
             vlc.stop()
         if self.name == "kodi":
+            kodi.stop()
             return
         if self.name == "mpv":
             return      
@@ -89,6 +92,7 @@ class Player:
         if self.name == "vlc":
             vlc.pause()
         if self.name == "kodi":
+            kodi.pause()
             return
         if self.name == "mpv":
             return
@@ -98,6 +102,8 @@ class Player:
             print("seek")
             vlc.seek(time)
         if self.name == "kodi":
+            print("seek")
+            kodi.seek(time)
             return
         if self.name == "mpv":
             return
@@ -106,6 +112,7 @@ class Player:
         if self.name == "vlc":
             vlc.get_info()
         if self.name == "kodi":
+            kodi.get_info()
             return
         if self.name == "mpv":
             return    
