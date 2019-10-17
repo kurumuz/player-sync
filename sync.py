@@ -5,185 +5,199 @@ import threading
 import math
 from time import sleep
 import vlc
+import db
+import kodi
 
-global sudo
-sudo = True
-global debug
-debug = True
-global playstatus
-playstatus = "stopped"
-global time
-time = 0
-
-global sudoplaystatus
-sudoplaystatus = "stopped"
-global sudotime
-sudotime = 0
-global sudolist
-global time_changed
+mastertime = 0
+masterps = "stopped" #master playstatus
 time_changed = False
-global status_changed
 status_changed = False
-
+player_name = "kodi"
 session = requests.Session()
-info = "null"
-global lag
+masterlist = []
 lag = 0.1
 
-def select_sudo():
-    global sudo
+def select_master():
     print(f"1. Alıcı\n2. Verici\nSeçimin: ")
     selection = input()
     if selection == "1":
-        sudo = False
+        db.master = False
     if selection == "2":
-        sudo = True
+        db.master = True
 
-def log_auth():
-    session.auth = ('', 'kalemkalem')
+class Server:
+    url = "None"
+    username = ""
 
-def get_info():
-    threading.Timer(lag, get_info).start()
-    info = session.get('http://127.0.0.1:8080/requests/status.xml', verify=False)
-    tree = ET.fromstring(info.content)
-    #tree = ET.parse(info)
-    #root = tree.getroot()
-    time = int(tree[5].text)
-    playstatus = tree[12].text
-    if debug:
-        print(f" Zaman: {str(time)} Oynatma Durumu: {playstatus}")
+    def set_url(self, new_url):
+        self.url = new_url
 
-def is_active(playstatus):
-    global playtime
-    if playstatus in ["stopped", "playing", "paused"]:
-        return True
-    else:
-        return False
+    def send_server_info(self, time1, playstatus1, command):
+            loginurl = f"{self.url}/login/"
+            client = requests.session()
+            client.get(loginurl, timeout=5)
+            csrftoken = client.cookies['csrftoken']
+            username2 = self.username
+            self.username = f'{str(db.master)};{playstatus1};{str(time1)};{command}'
 
-def send_server_info(time1, playstatus1, command):
-        global debug
-        #command veri akışını kesmek vs için kullanılabilir.
-        #threading.Timer(0.4, send_server_info(time, playstatus, "nocommand")).start()
-        url = "http://kurumuz.pythonanywhere.com/login/"
+            if self.username != username2: #possible optimization, needs testing.
+                login_data = {'username': self.username, 'password': 'blabla', 'csrfmiddlewaretoken':csrftoken}
+                response = client.post(loginurl, data=login_data, timeout=5)
+                if db.debug:
+                    print(self.username)
+                    print(response)
+        #master;running;time;deletecommand   
 
-        client = requests.session()
-        client.get(url, timeout=5)
-        csrftoken = client.cookies['csrftoken']
-        username = f'{str(sudo)};{playstatus1};{str(time1)};{command}'
-        login_data = {'username': username, 'password': 'blabla', 'csrfmiddlewaretoken':csrftoken}
-        headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'}
-        response = client.post(url, data=login_data, timeout=5)
-        if debug:
-            print(username)
-            print(response)
-    #sudo;running;time;deletecommand
+    def get_server_info(self):
+        global mastertime
+        global masterps
+        global masterlist
 
-def get_server_sudo_info():
-    global sudoplaystatus
-    global sudotime
-    global sudolist
+        r = requests.get(f'{self.url}/sudo/')
+        masterlist = r.text
+        masterlist = masterlist.split("\n")
+        masterps = masterlist[0].split(';')[1]
 
-    r = requests.get('http://kurumuz.pythonanywhere.com/sudo/')
-    sudolist = r.text
-    sudolist = sudolist.split("\n")
-    #print(sudolist[0].split(';')[2])
-    sudoplaystatus = sudolist[0].split(';')[1]
-    sudotime = int(sudolist[0].split(';')[2])
+         #print(f"mastertime {mastertime}")
+        mastertime = int(masterlist[0].split(';')[2])
 
-def not_sudo_sync():
-    global playstatus
-    global time
-    global sudoplaystatus
-    global sudotime
-    global status_changed
-    global time_changed
+class Player:
+    name = "None"
 
-    if status_changed:
-        if sudoplaystatus == "stopped":
-            vlc.stop()
-            print("Oynatma bitirildi.")
-        if sudoplaystatus == "paused":
-            vlc.pause()
-            print("Oynatma duraklatıldı.")
-        if sudoplaystatus == "playing":
+    def log_auth(self, password):
+        session.auth = ('', password)
+
+    def set_player(self, new_name):
+        self.name = new_name
+
+    def play(self):
+        if self.name == "vlc":
             vlc.play()
-            print("Oynatma başlatıldı.")
-    print(time_changed)
+        if self.name == "kodi":
+            kodi.play()
+            return
+        if self.name == "mpv":
+            return
 
-    if time_changed:
-        vlc.seek(sudotime)
+    def stop(self):
+        if self.name == "vlc":
+            vlc.stop()
+        if self.name == "kodi":
+            kodi.stop()
+            return
+        if self.name == "mpv":
+            return      
 
-def is_status_changed():
-    global sudolist
-    global status_changed
-    global playstatus
+    def pause(self):
+        if self.name == "vlc":
+            vlc.pause()
+        if self.name == "kodi":
+            kodi.pause()
+            return
+        if self.name == "mpv":
+            return
 
-    if sudolist[0].split(';')[1] != playstatus:
-        status_changed = True
-    else:
-        status_changed = False
-    #if sudolist[0].split(';')[1] != sudolist[1].split(';')[1]:
-        #status_changed = True
-    #else:
-    #    status_changed = False
+    def seek(self, time):
+        if self.name == "vlc":
+            print("seek")
+            vlc.seek(time)
+        if self.name == "kodi":
+            print("seek")
+            kodi.seek(time)
+            return
+        if self.name == "mpv":
+            return
 
-def is_time_changed():
-    global sudotime
-    global time
-    global time_changed
-    print(f"timefark: {abs(sudotime-time)}")
-    if abs(sudotime-time) > 5:
-        time_changed = True
-    else:
-        time_changed = False
+    def get_info(self):
+        if self.name == "vlc":
+            vlc.get_info()
+        if self.name == "kodi":
+            kodi.get_info()
+            return
+        if self.name == "mpv":
+            return    
+
+    def client_sync(self):
+        global status_changed
+        global masterps
+        global time_changed
+        if status_changed:
+            if masterps == "stopped":
+                self.stop()
+                print("Oynatma bitirildi.")
+            if masterps == "paused":
+                self.pause()
+                print("Oynatma duraklatıldı.")
+            if masterps == "playing":
+                self.play()
+                print("Oynatma başlatıldı.")
+
+        if time_changed:
+            self.seek(mastertime)
+
+    def is_status_changed(self):
+        global masterps
+        global status_changed
+        if masterps != db.ps:
+            status_changed = True
+        else:
+            status_changed = False
+
+    def is_time_changed(self):
+        global mastertime
+        global time_changed
+        #print(f"timefark: {abs(mastertime-db.time)}")
+        if abs(mastertime-db.time) > 3:
+            time_changed = True
+        else:
+            time_changed = False
+
+    def is_active(self, ps):
+        if ps in ["stopped", "playing", "paused"]:
+            return True
+        else:
+            return False
+
+server = Server()
+server.set_url("http://kurumuz.pythonanywhere.com")
+player = Player()
+player.log_auth("kalemkalem")
+player.set_player(player_name)
+select_master()
+player.get_info()
 
 
-log_auth()
-select_sudo()
-get_info()
-
-
-if sudo:
+if db.master:
 
     while 1:
 
-        if (playstatus == "false"): #stopped, playing, paused
+        if (db.ps == "false"): #stopped, playing, paused
             print("Oynayan içerik yok, lütfen bir içerik başlatın.")
 
-        if (playstatus != "false"):
+        if (db.ps != "false"):
             #while 1:
-            send_server_info(time, playstatus, "nocommand")
+            server.send_server_info(db.time, db.ps, "nocommand")
             
 
-        if (playstatus not in ["false", "stopped", "playing", "paused"]):
+        if (db.ps not in ["false", "stopped", "playing", "paused"]):
             print("video kapatıldı.")
 
         sleep(lag)
 
-if not sudo:
+if not db.master:
 
     while 1:
 
-        if playstatus == "false":
+        if db.ps == "false":
             print("Oynayan içerik yok, karşı taraf bir içerik oynatmalı.")
 
-        if playstatus != "false":
-            get_server_sudo_info()
-            #print("1")
-            is_status_changed()
-            #print("2")
-            is_time_changed()
-            #print("3")
-            not_sudo_sync()
-            #print("4")
+        if db.ps != "false":
+            server.get_server_info()
+            player.is_status_changed()
+            player.is_time_changed()
+            player.client_sync()
 
-
-        if (playstatus not in ["false", "stopped", "playing", "paused"]):
+        if (db.ps not in ["false", "stopped", "playing", "paused"]):
             print("video kapatıldı.")
 
         sleep(lag)
-
-
-
-#if sudo == False:
-    #while is_playing == "playing":
