@@ -17,6 +17,14 @@ session = requests.Session()
 masterlist = []
 lag = 0.1
 
+def select_player():
+    print(f"1. vlc\n2. Kodi\nSeçim: ")
+    players = input()
+    if selection == "1":
+        player_name = "vlc"
+    if selection == "2":
+        player_name = "kodi"
+        
 def select_master():
     print(f"1. Alıcı\n2. Verici\nSeçimin: ")
     selection = input()
