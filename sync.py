@@ -18,6 +18,7 @@ masterlist = []
 lag = 0.1
 
 def select_player():
+    global player_name
     print(f"1. vlc\n2. Kodi\nSeçim: ")
     players = input()
     if players == "1":
