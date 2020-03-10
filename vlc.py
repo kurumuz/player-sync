@@ -5,8 +5,7 @@ import db
 
 session = requests.Session()
 session.auth = ('', 'kalemkalem')
-ip = '192.168.43.1'
-ip2 = '127.0.0.1'
+ip = '127.0.0.1'
 
 def get_info():
     threading.Timer(0.1, get_info).start()
