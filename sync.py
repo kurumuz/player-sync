@@ -20,9 +20,9 @@ lag = 0.1
 def select_player():
     print(f"1. vlc\n2. Kodi\nSeçim: ")
     players = input()
-    if selection == "1":
+    if players == "1":
         player_name = "vlc"
-    if selection == "2":
+    if players == "2":
         player_name = "kodi"
         
 def select_master():
