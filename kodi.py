@@ -1,6 +1,6 @@
 from kodijson import Kodi, PLAYER_VIDEO
 ip = "127.0.0.1"
-kodi = Kodi(f"http://{ip}:8080/jsonrpc")
+kodi = Kodi(f"http://{ip}:8081/jsonrpc")
 import json
 import threading
 import db

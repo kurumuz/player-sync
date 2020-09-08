@@ -7,6 +7,8 @@ from time import sleep
 import vlc
 import db
 import kodi
+import websockets
+import asyncio
 
 mastertime = 0
 masterps = "stopped" #master playstatus
@@ -34,6 +36,11 @@ def select_master():
     if selection == "2":
         db.master = True
 
+async def send_server_info_ws(websocket, path):
+    command = "no"
+    message = f'{str(db.master)};{db.ps};{str(db.time)};{command}'
+    await websocket.send(message)
+
 class Server:
     url = "None"
     username = ""
@@ -41,34 +48,18 @@ class Server:
     def set_url(self, new_url):
         self.url = new_url
 
-    def send_server_info(self, time1, playstatus1, command):
-            loginurl = f"{self.url}/login/"
-            client = requests.session()
-            client.get(loginurl, timeout=5)
-            csrftoken = client.cookies['csrftoken']
-            username2 = self.username
-            self.username = f'{str(db.master)};{playstatus1};{str(time1)};{command}'
-
-            if self.username != username2: #possible optimization, needs testing.
-                login_data = {'username': self.username, 'password': 'blabla', 'csrfmiddlewaretoken':csrftoken}
-                response = client.post(loginurl, data=login_data, timeout=5)
-                if db.debug:
-                    print(self.username)
-                    print(response)
-        #master;running;time;deletecommand   
-
-    def get_server_info(self):
+    async def get_server_info_ws(self):
         global mastertime
         global masterps
         global masterlist
 
-        r = requests.get(f'{self.url}/sudo/')
-        masterlist = r.text
-        masterlist = masterlist.split("\n")
-        masterps = masterlist[0].split(';')[1]
-
-         #print(f"mastertime {mastertime}")
-        mastertime = int(masterlist[0].split(';')[2])
+        uri = "ws://localhost:8765"
+        async with websockets.connect(uri) as websocket:
+            message = await websocket.recv()
+            masterlist = message.split("\n")
+            masterps = masterlist[0].split(';')[1]
+            mastertime = int(masterlist[0].split(';')[2])
+            #master;running;time;deletecommand   
 
 class Player:
     name = "None"
@@ -179,15 +170,14 @@ player.get_info()
 
 if db.master:
 
+    start_server = websockets.serve(send_server_info_ws, "localhost", 8765)
+    asyncio.get_event_loop().run_until_complete(start_server)
+    asyncio.get_event_loop().run_forever()
+    
     while 1:
 
         if (db.ps == "false"): #stopped, playing, paused
             print("Oynayan içerik yok, lütfen bir içerik başlatın.")
-
-        if (db.ps != "false"):
-            #while 1:
-            server.send_server_info(db.time, db.ps, "nocommand")
-            
 
         if (db.ps not in ["false", "stopped", "playing", "paused"]):
             print("video kapatıldı.")
@@ -202,7 +192,7 @@ if not db.master:
             print("Oynayan içerik yok, karşı taraf bir içerik oynatmalı.")
 
         if db.ps != "false":
-            server.get_server_info()
+            asyncio.get_event_loop().run_until_complete(server.get_server_info_ws())
             player.is_status_changed()
             player.is_time_changed()
             player.client_sync()

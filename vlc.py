@@ -4,7 +4,7 @@ import xml.etree.ElementTree as ET
 import db
 
 session = requests.Session()
-session.auth = ('', 'kalemkalem')
+session.auth = ('', 'password')
 ip = '127.0.0.1'
 
 def get_info():
@@ -21,13 +21,13 @@ def pause():
     return
 
 def play():
-    r = session.get(f'http://{ip}:8080:8080/requests/status.xml?command=pl_play', verify=False)
+    r = session.get(f'http://{ip}:8080/requests/status.xml?command=pl_play', verify=False)
     return
 
 def stop():
-    r = session.get(f'http://{ip}:8080:8080/requests/status.xml?command=pl_stop', verify=False)
+    r = session.get(f'http://{ip}:8080/requests/status.xml?command=pl_stop', verify=False)
     return
 
 def seek(time):
-    r = session.get(f'http://{ip}:8080:8080/requests/status.xml?command=seek&val=' + str(time) , verify=False)
+    r = session.get(f'http://{ip}:8080/requests/status.xml?command=seek&val=' + str(time) , verify=False)
     return
